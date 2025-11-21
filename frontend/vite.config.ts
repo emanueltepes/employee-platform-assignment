@@ -17,9 +17,13 @@ export default defineConfig({
   preview: {
     host: '0.0.0.0',
     port: 3000,
+    allowedHosts: [
+      'employee-platform-assignment-fronend.onrender.com',
+      '.onrender.com', // Allow all Render hosts
+    ],
     proxy: {
       '/api': {
-        target: 'http://backend:8080',
+        target: process.env.VITE_API_URL || 'http://backend:8080',
         changeOrigin: true,
       },
     },
