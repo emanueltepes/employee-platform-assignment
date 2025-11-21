@@ -1,0 +1,21 @@
+package com.newwork.backend.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class FeedbackRequest {
+    
+    @NotBlank(message = "Feedback content is required")
+    private String content;
+    
+    @Builder.Default
+    private Boolean useAiPolish = false;
+}
+
