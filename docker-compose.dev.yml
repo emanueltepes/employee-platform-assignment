@@ -1,7 +1,3 @@
-version: '3.8'
-
-# Development environment with hot reload
-
 services:
   # Backend Service
   backend:
