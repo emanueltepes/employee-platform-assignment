@@ -15,8 +15,8 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Expose port
+# Expose port (dynamic from Render)
 EXPOSE 3000
 
-# Use Vite preview to serve the built files
-CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "3000"]
+# Use sh to evaluate environment variable for dynamic port
+CMD sh -c "npm run preview -- --host 0.0.0.0 --port ${PORT:-3000}"
