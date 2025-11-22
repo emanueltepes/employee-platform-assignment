@@ -2,6 +2,8 @@ package com.newwork.backend.service;
 
 import com.newwork.backend.dto.FeedbackDto;
 import com.newwork.backend.dto.FeedbackRequest;
+import com.newwork.backend.dto.FeedbackSuggestionsRequest;
+import com.newwork.backend.dto.FeedbackSuggestionsResponse;
 import com.newwork.backend.entity.Employee;
 import com.newwork.backend.entity.Feedback;
 import com.newwork.backend.entity.User;
@@ -57,6 +59,13 @@ public class FeedbackService {
         
         feedback = feedbackRepository.save(feedback);
         return feedbackMapper.toDto(feedback);
+    }
+
+    public FeedbackSuggestionsResponse generateFeedbackSuggestions(FeedbackSuggestionsRequest request) {
+        List<String> suggestions = huggingFaceService.generateFeedbackOptions(request.getContent());
+        return FeedbackSuggestionsResponse.builder()
+                .suggestions(suggestions)
+                .build();
     }
     
     @Transactional(readOnly = true)

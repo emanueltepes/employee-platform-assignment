@@ -2,6 +2,8 @@ package com.newwork.backend.controller;
 
 import com.newwork.backend.dto.FeedbackDto;
 import com.newwork.backend.dto.FeedbackRequest;
+import com.newwork.backend.dto.FeedbackSuggestionsRequest;
+import com.newwork.backend.dto.FeedbackSuggestionsResponse;
 import com.newwork.backend.service.FeedbackService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +36,13 @@ public class FeedbackController {
     public ResponseEntity<Void> deleteFeedback(@PathVariable Long feedbackId) {
         feedbackService.deleteFeedback(feedbackId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/suggestions")
+    public ResponseEntity<FeedbackSuggestionsResponse> getFeedbackSuggestions(
+            @Valid @RequestBody FeedbackSuggestionsRequest request
+    ) {
+        return ResponseEntity.ok(feedbackService.generateFeedbackSuggestions(request));
     }
 }
 

@@ -104,10 +104,15 @@ const EmployeeProfile = () => {
           submitting={feedback.submitting}
           deletingId={feedback.deletingId}
           currentUsername={user?.username}
+          loadingSuggestions={feedback.loadingSuggestions}
+          suggestions={feedback.suggestions}
+          selectedSuggestion={feedback.selectedSuggestion}
           onToggleForm={() => feedback.setShowForm(!feedback.showForm)}
           onFormChange={feedback.setFormData}
           onSubmit={feedback.handleSubmit}
           onDelete={feedback.handleDelete}
+          onGetSuggestions={feedback.handleGetSuggestions}
+          onSelectSuggestion={feedback.setSelectedSuggestion}
         />
       )}
     </div>

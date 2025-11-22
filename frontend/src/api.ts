@@ -8,6 +8,8 @@ import type {
   AbsenceRequest,
   Feedback,
   FeedbackRequest,
+  FeedbackSuggestionsRequest,
+  FeedbackSuggestionsResponse,
 } from './types';
 
 const api = axios.create({
@@ -77,6 +79,9 @@ export const feedbackApi = {
   
   delete: (feedbackId: number) =>
     api.delete(`/feedbacks/${feedbackId}`),
+  
+  getSuggestions: (data: FeedbackSuggestionsRequest) =>
+    api.post<FeedbackSuggestionsResponse>('/feedbacks/suggestions', data),
 };
 
 export default api;

@@ -6,18 +6,51 @@ export const useFeedback = (employeeId: number, onSuccess: () => void) => {
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<number | null>(null);
   const [formData, setFormData] = useState<FeedbackRequest>({
     content: '',
     useAiPolish: false,
   });
 
+  const handleGetSuggestions = useCallback(async () => {
+    if (!formData.content.trim()) {
+      alert('Please enter some feedback first');
+      return;
+    }
+
+    setLoadingSuggestions(true);
+    try {
+      const response = await feedbackApi.getSuggestions({ content: formData.content });
+      setSuggestions(response.data.suggestions);
+      setSelectedSuggestion(null); // Reset selection
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to generate suggestions');
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  }, [formData.content]);
+
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // If there are suggestions and one is selected, use that
+    let contentToSubmit = formData.content;
+    if (suggestions.length > 0 && selectedSuggestion !== null) {
+      contentToSubmit = suggestions[selectedSuggestion];
+    }
+
     setSubmitting(true);
     try {
-      await feedbackApi.create(employeeId, formData);
+      await feedbackApi.create(employeeId, {
+        content: contentToSubmit,
+        useAiPolish: false, // We're not using the old flow anymore
+      });
       setShowForm(false);
       setFormData({ content: '', useAiPolish: false });
+      setSuggestions([]);
+      setSelectedSuggestion(null);
       onSuccess();
       alert('Feedback submitted successfully!');
     } catch (err: any) {
@@ -25,7 +58,7 @@ export const useFeedback = (employeeId: number, onSuccess: () => void) => {
     } finally {
       setSubmitting(false);
     }
-  }, [employeeId, formData, onSuccess]);
+  }, [employeeId, formData.content, suggestions, selectedSuggestion, onSuccess]);
 
   const handleDelete = useCallback(async (feedbackId: number) => {
     if (!confirm('Are you sure you want to delete this feedback?')) {
@@ -51,8 +84,13 @@ export const useFeedback = (employeeId: number, onSuccess: () => void) => {
     setFormData,
     submitting,
     deletingId,
+    loadingSuggestions,
+    suggestions,
+    selectedSuggestion,
+    setSelectedSuggestion,
     handleSubmit,
     handleDelete,
+    handleGetSuggestions,
   };
 };
 

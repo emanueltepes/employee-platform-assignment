@@ -86,3 +86,11 @@ export interface FeedbackRequest {
   useAiPolish: boolean;
 }
 
+export interface FeedbackSuggestionsRequest {
+  content: string;
+}
+
+export interface FeedbackSuggestionsResponse {
+  suggestions: string[];
+}
+
