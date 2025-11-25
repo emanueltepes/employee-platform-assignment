@@ -31,18 +31,14 @@ const AbsencesManagement = () => {
       // Fetch all absences and employees
       const [absencesRes, employeesRes] = await Promise.all([
         absenceApi.getAll(),
-        employeeApi.getAll({ page: 0, size: 1000 }),
+        employeeApi.getAllPaginated(0, 1000),
       ]);
 
       setAbsences(absencesRes.data);
 
       // Create a map of employee ID to employee for quick lookup
       const empMap = new Map<number, Employee>();
-      const empList = Array.isArray(employeesRes.data)
-        ? employeesRes.data
-        : employeesRes.data.content || [];
-
-      empList.forEach((emp: Employee) => {
+      employeesRes.data.content.forEach((emp: Employee) => {
         empMap.set(emp.id, emp);
       });
       setEmployees(empMap);
