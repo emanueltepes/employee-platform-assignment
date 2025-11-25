@@ -79,7 +79,7 @@ export HUGGINGFACE_API_KEY=your_api_key_here
 
 ```
 ┌─────────────┐      ┌─────────────┐      ┌──────────────┐
-│   React     │◄────►│  Spring     │◄────►│  In memory   │
+│   React     │◄────►│  Spring     │◄────►│  Postgres   │
 │  Frontend   │      │   Boot      │      │   Database   │
 └─────────────┘      └─────────────┘      └──────────────┘
                             │
@@ -99,7 +99,7 @@ export HUGGINGFACE_API_KEY=your_api_key_here
 #### Tech Stack
 - **Framework**: Spring Boot 3.5.8
 - **Language**: Java 17
-- **Database**: PostgreSQL (production), H2 (development)
+- **Database**: Postgres (prod) , H2 - dev
 - **Cache**: Redis/Valkey
 - **Security**: Spring Security with JWT
 - **Monitoring**: Spring Actuator + Micrometer + Prometheus
