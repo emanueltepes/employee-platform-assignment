@@ -79,7 +79,7 @@ export HUGGINGFACE_API_KEY=your_api_key_here
 
 ```
 ┌─────────────┐      ┌─────────────┐      ┌──────────────┐
-│   React     │◄────►│  Spring     │◄────►│  Postgres   │
+│   React     │◄────►│  Spring     │◄────►│  Postgres    │
 │  Frontend   │      │   Boot      │      │   Database   │
 └─────────────┘      └─────────────┘      └──────────────┘
                             │
