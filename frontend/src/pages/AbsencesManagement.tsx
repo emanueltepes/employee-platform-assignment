@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { absenceApi, employeeApi } from "../api";
 import type { Absence, Employee } from "../types";
 import { useAuth } from "../AuthContext";
@@ -7,6 +8,7 @@ type FilterStatus = "ALL" | "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
 
 const AbsencesManagement = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [absences, setAbsences] = useState<Absence[]>([]);
   const [employees, setEmployees] = useState<Map<number, Employee>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -64,12 +66,25 @@ const AbsencesManagement = () => {
         `[AbsencesManagement] Update successful, response:`,
         response.data
       );
-      await loadData(); // Reload data
-      console.log(`[AbsencesManagement] Data reloaded after status update`);
-      alert(`Absence request ${status.toLowerCase()} successfully!`);
+      
+      // Update the absence in state immediately for smooth UX
+      setAbsences(prevAbsences => 
+        prevAbsences.map(abs => 
+          abs.id === absenceId 
+            ? { ...abs, status: status as any, approvedBy: user?.username, approvedAt: new Date().toISOString() }
+            : abs
+        )
+      );
+      
+      // Notify Layout to refresh pending count
+      window.dispatchEvent(new Event('refreshAbsenceCount'));
+      
+      console.log(`[AbsencesManagement] Absence ${status.toLowerCase()} successfully!`);
     } catch (err: any) {
       console.error(`[AbsencesManagement] Failed to update status:`, err);
       alert(err.response?.data?.message || "Failed to update absence status");
+      // Reload data on error to ensure consistency
+      await loadData();
     } finally {
       setUpdatingStatusId(null);
     }
@@ -231,7 +246,10 @@ const AbsencesManagement = () => {
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   {/* Employee Info & Absence Details */}
-                  <div className="flex-1">
+                  <div 
+                    className="flex-1 cursor-pointer" 
+                    onClick={() => navigate(`/employee/${absence.employeeId}`)}
+                  >
                     <div className="flex items-center gap-3 mb-2">
                       <div className="bg-primary-100 text-primary-700 font-bold text-lg rounded-full w-10 h-10 flex items-center justify-center">
                         {employee?.firstName?.[0]}

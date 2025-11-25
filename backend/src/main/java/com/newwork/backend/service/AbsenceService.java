@@ -165,6 +165,11 @@ public class AbsenceService {
                 .collect(Collectors.toList());
     }
     
+    @Transactional(readOnly = true)
+    public long getPendingAbsencesCount() {
+        return absenceRepository.countByStatus(Absence.AbsenceStatus.PENDING);
+    }
+    
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();

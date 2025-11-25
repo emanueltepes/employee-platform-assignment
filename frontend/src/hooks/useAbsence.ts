@@ -60,7 +60,11 @@ export const useAbsence = (employeeId: number, onSuccess: () => void) => {
       setShowForm(false);
       setFormData({ startDate: '', endDate: '', type: 'VACATION', reason: '' });
       onSuccess();
-      alert('Absence request submitted successfully!');
+      
+      // Notify Layout to refresh pending count
+      window.dispatchEvent(new Event('refreshAbsenceCount'));
+      
+      console.log('✅ Absence request submitted successfully!');
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to submit absence request');
     } finally {
@@ -82,13 +86,16 @@ export const useAbsence = (employeeId: number, onSuccess: () => void) => {
       await onSuccess(); // Make sure onSuccess is awaited
       console.log(`[useAbsence] AFTER refresh - Employee data should be refreshed now!`);
       
+      // Notify Layout to refresh pending count
+      window.dispatchEvent(new Event('refreshAbsenceCount'));
+      
       // Force a second refresh to be absolutely sure
       setTimeout(async () => {
         console.log(`[useAbsence] Double-check refresh after 300ms...`);
         await onSuccess();
       }, 300);
       
-      alert(`Absence request ${status.toLowerCase()} successfully!`);
+      console.log(`✅ Absence request ${status.toLowerCase()} successfully!`);
     } catch (err: any) {
       console.error(`[useAbsence] Failed to update status:`, err);
       alert(err.response?.data?.message || 'Failed to update absence status');
@@ -141,7 +148,7 @@ export const useAbsence = (employeeId: number, onSuccess: () => void) => {
       await absenceApi.update(absenceId, editFormData);
       setEditingId(null);
       onSuccess();
-      alert('Absence request updated successfully!');
+      console.log('✅ Absence request updated successfully!');
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to update absence request');
     } finally {
@@ -158,7 +165,11 @@ export const useAbsence = (employeeId: number, onSuccess: () => void) => {
     try {
       await absenceApi.delete(absenceId);
       onSuccess();
-      alert('Absence request deleted successfully!');
+      
+      // Notify Layout to refresh pending count
+      window.dispatchEvent(new Event('refreshAbsenceCount'));
+      
+      console.log('✅ Absence request deleted successfully!');
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to delete absence request');
     } finally {

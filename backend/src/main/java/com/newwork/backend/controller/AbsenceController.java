@@ -36,6 +36,11 @@ public class AbsenceController {
         return ResponseEntity.ok(absenceService.getAllAbsences());
     }
     
+    @GetMapping("/pending/count")
+    public ResponseEntity<Long> getPendingAbsencesCount() {
+        return ResponseEntity.ok(absenceService.getPendingAbsencesCount());
+    }
+    
     @PutMapping("/{absenceId}")
     public ResponseEntity<AbsenceDto> updateAbsence(
             @PathVariable Long absenceId,

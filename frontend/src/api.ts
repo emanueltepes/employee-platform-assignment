@@ -107,6 +107,16 @@ export const absenceApi = {
       }
     });
   },
+  
+  getPendingCount: () =>
+    api.get<number>('/absences/pending/count', {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
+      params: { _t: Date.now() }
+    })
 };
 
 // Feedback APIs

@@ -19,5 +19,10 @@ public interface AbsenceRepository extends JpaRepository<Absence, Long> {
     
     @EntityGraph(attributePaths = {"employee"})
     List<Absence> findByEmployeeIdOrderByCreatedAtDesc(Long employeeId);
+    
+    /**
+     * Count pending absence requests
+     */
+    long countByStatus(Absence.AbsenceStatus status);
 }
 

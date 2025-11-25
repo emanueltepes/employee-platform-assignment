@@ -1,7 +1,9 @@
 package com.newwork.backend.config;
 
+import com.newwork.backend.entity.Absence;
 import com.newwork.backend.entity.Employee;
 import com.newwork.backend.entity.User;
+import com.newwork.backend.repository.AbsenceRepository;
 import com.newwork.backend.repository.EmployeeRepository;
 import com.newwork.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ public class DataInitializer implements CommandLineRunner {
     
     private final UserRepository userRepository;
     private final EmployeeRepository employeeRepository;
+    private final AbsenceRepository absenceRepository;
     private final PasswordEncoder passwordEncoder;
     
     private static final String[] FIRST_NAMES = {
@@ -104,6 +107,11 @@ public class DataInitializer implements CommandLineRunner {
             log.info("🎉 Successfully initialized {} employees in {:.2f} seconds!", 
                     totalEmployees + 3, seconds);
             log.info("⚡ Average: {:.0f} employees/second", (totalEmployees / seconds));
+            
+            // Create sample absence requests
+            log.info("📅 Creating sample absence requests...");
+            createSampleAbsences();
+            
             log.info("");
             log.info("Test users:");
             log.info("  Manager - username: manager, password: password123");
@@ -252,6 +260,105 @@ public class DataInitializer implements CommandLineRunner {
                     .contractType("Full-time")
                     .build();
             employeeRepository.save(coworker);
+    }
+    
+    private void createSampleAbsences() {
+        Random random = new Random();
+        List<Employee> allEmployees = employeeRepository.findAll();
+        List<Absence> absences = new ArrayList<>();
+        
+        // Sample absence types and reasons
+        Absence.AbsenceType[] types = Absence.AbsenceType.values();
+        String[] vacationReasons = {
+            "Family vacation", "Wedding trip", "Beach holiday", "Mountain retreat", "Visit relatives"
+        };
+        String[] sickReasons = {
+            "Flu symptoms", "Medical appointment", "Recovery period", "Minor surgery", "Doctor's orders"
+        };
+        String[] personalReasons = {
+            "Moving houses", "Family emergency", "Personal matters", "House repairs", "Legal appointment"
+        };
+        
+        // Create 30-50 absence requests across different employees
+        int numAbsences = 30 + random.nextInt(21);
+        
+        for (int i = 0; i < numAbsences && i < allEmployees.size(); i++) {
+            Employee employee = allEmployees.get(random.nextInt(allEmployees.size()));
+            Absence.AbsenceType type = types[random.nextInt(types.length)];
+            
+            // Generate dates
+            LocalDate today = LocalDate.now();
+            int daysFromToday = random.nextInt(60) - 30; // Between -30 and +30 days
+            LocalDate startDate = today.plusDays(daysFromToday);
+            LocalDate endDate = startDate.plusDays(1 + random.nextInt(14)); // 1-14 days duration
+            
+            // Select reason based on type
+            String reason = "";
+            switch (type) {
+                case VACATION -> reason = vacationReasons[random.nextInt(vacationReasons.length)];
+                case SICK_LEAVE -> reason = sickReasons[random.nextInt(sickReasons.length)];
+                case PERSONAL_LEAVE -> reason = personalReasons[random.nextInt(personalReasons.length)];
+                case MATERNITY_PATERNITY -> reason = "Parental leave";
+                case OTHER -> reason = "Other personal reasons";
+            }
+            
+            // Determine status - more pending for future dates, more approved/rejected for past
+            Absence.AbsenceStatus status;
+            if (daysFromToday > 0) {
+                // Future dates: 70% pending, 20% approved, 10% rejected
+                int statusRoll = random.nextInt(100);
+                if (statusRoll < 70) {
+                    status = Absence.AbsenceStatus.PENDING;
+                } else if (statusRoll < 90) {
+                    status = Absence.AbsenceStatus.APPROVED;
+                } else {
+                    status = Absence.AbsenceStatus.REJECTED;
+                }
+            } else {
+                // Past dates: 10% pending, 70% approved, 20% rejected
+                int statusRoll = random.nextInt(100);
+                if (statusRoll < 10) {
+                    status = Absence.AbsenceStatus.PENDING;
+                } else if (statusRoll < 80) {
+                    status = Absence.AbsenceStatus.APPROVED;
+                } else {
+                    status = Absence.AbsenceStatus.REJECTED;
+                }
+            }
+            
+            Absence absence = Absence.builder()
+                    .employee(employee)
+                    .startDate(startDate)
+                    .endDate(endDate)
+                    .type(type)
+                    .reason(reason)
+                    .status(status)
+                    .build();
+            
+            // Set approver for non-pending requests
+            if (status != Absence.AbsenceStatus.PENDING) {
+                absence.setApprovedBy("John Manager");
+                absence.setApprovedAt(LocalDate.now().minusDays(random.nextInt(30)).atTime(9, 0));
+            }
+            
+            absences.add(absence);
+        }
+        
+        // Batch save
+        absenceRepository.saveAll(absences);
+        
+        long pendingCount = absences.stream()
+                .filter(a -> a.getStatus() == Absence.AbsenceStatus.PENDING)
+                .count();
+        long approvedCount = absences.stream()
+                .filter(a -> a.getStatus() == Absence.AbsenceStatus.APPROVED)
+                .count();
+        long rejectedCount = absences.stream()
+                .filter(a -> a.getStatus() == Absence.AbsenceStatus.REJECTED)
+                .count();
+        
+        log.info("✅ Created {} absence requests (Pending: {}, Approved: {}, Rejected: {})", 
+                absences.size(), pendingCount, approvedCount, rejectedCount);
     }
 }
 

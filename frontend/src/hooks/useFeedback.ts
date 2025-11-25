@@ -52,7 +52,7 @@ export const useFeedback = (employeeId: number, onSuccess: () => void) => {
       setSuggestions([]);
       setSelectedSuggestion(null);
       onSuccess();
-      alert('Feedback submitted successfully!');
+      console.log('✅ Feedback submitted successfully!');
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to submit feedback');
     } finally {
@@ -69,7 +69,7 @@ export const useFeedback = (employeeId: number, onSuccess: () => void) => {
     try {
       await feedbackApi.delete(feedbackId);
       onSuccess();
-      alert('Feedback deleted successfully!');
+      console.log('✅ Feedback deleted successfully!');
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to delete feedback');
     } finally {
