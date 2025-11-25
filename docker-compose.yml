@@ -4,7 +4,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: newwork-backend
+    container_name: hr-platform-backend
     ports:
       - "8080:8080"
     environment:
@@ -32,7 +32,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: newwork-frontend
+    container_name: hr-platform-frontend
     ports:
       - "3000:3000"
     depends_on:

@@ -56,10 +56,10 @@ const Layout = () => {
       <nav className="bg-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
-            <div className="flex items-center space-x-8">
-              <Link to="/" className="text-2xl font-bold text-primary-600">
-                NEWWORK HR
-              </Link>
+                <div className="flex items-center space-x-8">
+                  <Link to="/" className="text-2xl font-bold text-primary-600">
+                    HR Platform
+                  </Link>
               <div className="flex space-x-4">
                 <Link 
                   to="/" 

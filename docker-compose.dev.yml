@@ -2,7 +2,7 @@ services:
   # Redis Cache Service
   redis:
     image: redis:7-alpine
-    container_name: newwork-redis-dev
+    container_name: hr-platform-redis-dev
     ports:
       - "6379:6379"
     networks:
@@ -19,7 +19,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: newwork-backend-dev
+    container_name: hr-platform-backend-dev
     ports:
       - "8080:8080"
     environment:
@@ -44,7 +44,8 @@ services:
       REDIS_PORT: 6379
       
       # Logging
-      LOGGING_LEVEL_COM_NEWWORK_BACKEND: DEBUG
+          LOGGING_LEVEL_COM_NEWWORK_BACKEND: DEBUG
+          # Note: Logging level kept for internal package structure
     depends_on:
       redis:
         condition: service_healthy
@@ -63,7 +64,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
-    container_name: newwork-frontend-dev
+    container_name: hr-platform-frontend-dev
     ports:
       - "3000:3000"
     volumes:
