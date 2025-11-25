@@ -32,6 +32,7 @@ const EmployeeProfile = () => {
   const feedback = useFeedback(employeeId, refreshEmployee);
 
   // Memoize permission checks to prevent recalculation on every render
+  const isManager = useMemo(() => user?.role === 'MANAGER', [user]);
   const canEdit = useMemo(() => user?.role === 'MANAGER' || user?.employeeId === employeeId, [user, employeeId]);
   const canRequestAbsence = useMemo(() => user?.employeeId === employeeId, [user, employeeId]);
   const isViewingOwnProfile = useMemo(() => user?.employeeId === employeeId, [user, employeeId]);
@@ -65,7 +66,10 @@ const EmployeeProfile = () => {
           employee={employee}
           canEdit={canEdit}
           editing={editing}
+          editData={editData}
           onEditToggle={handleEditToggle}
+          onEditChange={setEditData}
+          isManager={isManager}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -74,10 +78,17 @@ const EmployeeProfile = () => {
             editing={editing}
             editData={editData}
             onEditChange={setEditData}
+            isManager={isManager}
           />
 
           {showSensitiveData && (
-            <EmployeeSensitiveInfo employee={employee} />
+            <EmployeeSensitiveInfo
+              employee={employee}
+              editing={editing}
+              editData={editData}
+              onEditChange={setEditData}
+              isManager={isManager}
+            />
           )}
         </div>
       </div>
@@ -113,6 +124,7 @@ const EmployeeProfile = () => {
           onDelete={feedback.handleDelete}
           onGetSuggestions={feedback.handleGetSuggestions}
           onSelectSuggestion={feedback.setSelectedSuggestion}
+          onClearSuggestions={feedback.handleClearSuggestions}
         />
       )}
     </div>

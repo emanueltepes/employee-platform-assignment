@@ -4,6 +4,7 @@ import com.newwork.backend.dto.EmployeeDto;
 import com.newwork.backend.dto.EmployeeUpdateRequest;
 import com.newwork.backend.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,8 +18,23 @@ public class EmployeeController {
     private final EmployeeService employeeService;
     
     @GetMapping
-    public ResponseEntity<List<EmployeeDto>> getAllEmployees() {
-        return ResponseEntity.ok(employeeService.getAllEmployees());
+    public ResponseEntity<?> getAllEmployees(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(defaultValue = "lastName") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir
+    ) {
+        // If pagination parameters are provided, return paginated response
+        if (page != null && size != null) {
+            Page<EmployeeDto> employeePage = employeeService.getEmployeesPaginated(
+                    page, size, sortBy, sortDir
+            );
+            return ResponseEntity.ok(employeePage);
+        }
+        
+        // Otherwise, return all employees (backward compatibility)
+        List<EmployeeDto> employees = employeeService.getAllEmployees();
+        return ResponseEntity.ok(employees);
     }
     
     @GetMapping("/{id}")
@@ -39,4 +55,3 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.updateEmployee(id, request));
     }
 }
-

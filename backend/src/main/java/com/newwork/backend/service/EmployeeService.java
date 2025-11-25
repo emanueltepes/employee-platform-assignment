@@ -1,5 +1,6 @@
 package com.newwork.backend.service;
 
+import com.newwork.backend.config.CacheConfig;
 import com.newwork.backend.dto.EmployeeDto;
 import com.newwork.backend.dto.EmployeeUpdateRequest;
 import com.newwork.backend.entity.Employee;
@@ -8,6 +9,14 @@ import com.newwork.backend.mapper.EmployeeMapper;
 import com.newwork.backend.repository.EmployeeRepository;
 import com.newwork.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -18,6 +27,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EmployeeService {
     
     private final EmployeeRepository employeeRepository;
@@ -25,7 +35,9 @@ public class EmployeeService {
     private final EmployeeMapper employeeMapper;
     
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConfig.EMPLOYEE_BY_ID_CACHE, key = "#id")
     public EmployeeDto getEmployeeById(Long id) {
+        log.info("Fetching employee from database: {}", id);
         // Fetch employee with absences first
         Employee employee = employeeRepository.findByIdWithAbsences(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
@@ -54,7 +66,9 @@ public class EmployeeService {
     }
     
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConfig.EMPLOYEES_CACHE, key = "'all'")
     public List<EmployeeDto> getAllEmployees() {
+        log.info("Fetching all employees from database");
         List<Employee> employees = employeeRepository.findAll();
         User currentUser = getCurrentUser();
         
@@ -77,8 +91,41 @@ public class EmployeeService {
                 .collect(Collectors.toList());
     }
     
+    @Transactional(readOnly = true)
+    // Note: Not caching Page objects due to serialization complexity with Redis
+    // Pagination queries are already fast as they only fetch a small subset
+    public Page<EmployeeDto> getEmployeesPaginated(int page, int size, String sortBy, String sortDir) {
+        log.info("Fetching employees page {} with size {} from database", page, size);
+        
+        Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        
+        Page<Employee> employeePage = employeeRepository.findAll(pageable);
+        User currentUser = getCurrentUser();
+        
+        return employeePage.map(employee -> {
+            EmployeeDto dto = employeeMapper.toDto(employee);
+            if (!canViewSensitiveData(currentUser, employee)) {
+                dto.setSalary(null);
+                dto.setDateOfBirth(null);
+                dto.setSocialSecurityNumber(null);
+                dto.setBankAccount(null);
+                dto.setAddress(null);
+                dto.setEmergencyContact(null);
+                dto.setHireDate(null);
+                dto.setContractType(null);
+            }
+            return dto;
+        });
+    }
+    
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = CacheConfig.EMPLOYEE_BY_ID_CACHE, key = "#id"),
+        @CacheEvict(value = CacheConfig.EMPLOYEES_CACHE, allEntries = true)
+    })
     public EmployeeDto updateEmployee(Long id, EmployeeUpdateRequest request) {
+        log.info("Updating employee {} and clearing cache", id);
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
         
@@ -88,7 +135,10 @@ public class EmployeeService {
             throw new RuntimeException("You don't have permission to modify this employee");
         }
         
-        employeeMapper.updateEmployeeFromDto(request, employee);
+        // Apply field-level permissions based on role
+        EmployeeUpdateRequest filteredRequest = filterUpdateFieldsByRole(currentUser, request);
+        
+        employeeMapper.updateEmployeeFromDto(filteredRequest, employee);
         employee = employeeRepository.save(employee);
         
         return employeeMapper.toDto(employee);
@@ -133,6 +183,28 @@ public class EmployeeService {
         
         // Employee can modify their own profile
         return employee.getUser().getId().equals(currentUser.getId());
+    }
+    
+    /**
+     * Filter update fields based on user role:
+     * - MANAGER: Can edit all fields
+     * - EMPLOYEE/COWORKER: Can only edit contact data (phone, officeLocation, address, emergencyContact)
+     */
+    private EmployeeUpdateRequest filterUpdateFieldsByRole(User currentUser, EmployeeUpdateRequest request) {
+        // Managers can update all fields
+        if (currentUser.getRole() == User.Role.MANAGER) {
+            return request;
+        }
+        
+        // Regular employees can only update contact information
+        EmployeeUpdateRequest filteredRequest = new EmployeeUpdateRequest();
+        filteredRequest.setPhone(request.getPhone());
+        filteredRequest.setOfficeLocation(request.getOfficeLocation());
+        filteredRequest.setAddress(request.getAddress());
+        filteredRequest.setEmergencyContact(request.getEmergencyContact());
+        
+        log.info("Filtered update request for non-manager user. Only contact fields allowed.");
+        return filteredRequest;
     }
 }
 

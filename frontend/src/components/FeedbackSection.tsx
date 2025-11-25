@@ -16,6 +16,7 @@ interface FeedbackSectionProps {
   onDelete: (feedbackId: number) => void;
   onGetSuggestions: () => void;
   onSelectSuggestion: (index: number) => void;
+  onClearSuggestions: () => void;
 }
 
 export const FeedbackSection = ({
@@ -34,6 +35,7 @@ export const FeedbackSection = ({
   onDelete,
   onGetSuggestions,
   onSelectSuggestion,
+  onClearSuggestions,
 }: FeedbackSectionProps) => {
   return (
     <div className="card">
@@ -62,28 +64,16 @@ export const FeedbackSection = ({
             />
           </div>
 
-          {suggestions.length === 0 ? (
-            <button 
-              type="button"
-              onClick={onGetSuggestions}
-              className="btn bg-purple-600 hover:bg-purple-700 text-white"
-              disabled={loadingSuggestions || !formData.content.trim()}
-            >
-              {loadingSuggestions ? 'Generating AI Suggestions...' : 'Get AI Suggestions ✨'}
-            </button>
-          ) : (
+          {suggestions.length > 0 && (
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <h4 className="font-semibold text-gray-900">Select a version:</h4>
                 <button 
                   type="button"
-                  onClick={() => {
-                    onFormChange({ ...formData, content: formData.content });
-                    onSelectSuggestion(null as any);
-                  }}
-                  className="text-sm text-gray-600 hover:text-gray-900"
+                  onClick={onClearSuggestions}
+                  className="text-sm text-purple-600 hover:text-purple-800 font-medium"
                 >
-                  Edit original
+                  ← Edit original
                 </button>
               </div>
 
@@ -113,13 +103,27 @@ export const FeedbackSection = ({
             </div>
           )}
 
-          <button 
-            type="submit" 
-            className="btn btn-primary"
-            disabled={submitting || (suggestions.length > 0 && selectedSuggestion === null)}
-          >
-            {submitting ? 'Submitting...' : 'Submit Feedback'}
-          </button>
+          {/* Action Buttons - Horizontal Layout */}
+          <div className="flex items-center gap-3">
+            {suggestions.length === 0 && (
+              <button 
+                type="button"
+                onClick={onGetSuggestions}
+                className="btn bg-purple-600 hover:bg-purple-700 text-white"
+                disabled={loadingSuggestions || !formData.content.trim()}
+              >
+                {loadingSuggestions ? 'Generating AI Suggestions...' : 'Get AI Suggestions ✨'}
+              </button>
+            )}
+            
+            <button 
+              type="submit" 
+              className="btn btn-primary"
+              disabled={submitting || (suggestions.length > 0 && selectedSuggestion === null)}
+            >
+              {submitting ? 'Submitting...' : 'Submit Feedback'}
+            </button>
+          </div>
         </form>
       )}
 

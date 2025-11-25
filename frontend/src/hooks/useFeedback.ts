@@ -77,6 +77,11 @@ export const useFeedback = (employeeId: number, onSuccess: () => void) => {
     }
   }, [onSuccess]);
 
+  const handleClearSuggestions = useCallback(() => {
+    setSuggestions([]);
+    setSelectedSuggestion(null);
+  }, []);
+
   return {
     showForm,
     setShowForm,
@@ -91,6 +96,7 @@ export const useFeedback = (employeeId: number, onSuccess: () => void) => {
     handleSubmit,
     handleDelete,
     handleGetSuggestions,
+    handleClearSuggestions,
   };
 };
 

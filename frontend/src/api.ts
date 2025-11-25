@@ -10,6 +10,7 @@ import type {
   FeedbackRequest,
   FeedbackSuggestionsRequest,
   FeedbackSuggestionsResponse,
+  PageResponse,
 } from './types';
 
 const api = axios.create({
@@ -41,6 +42,11 @@ export const authApi = {
 export const employeeApi = {
   getAll: () =>
     api.get<Employee[]>('/employees'),
+  
+  getAllPaginated: (page: number, size: number, sortBy = 'lastName', sortDir = 'asc') =>
+    api.get<PageResponse<Employee>>('/employees', {
+      params: { page, size, sortBy, sortDir }
+    }),
   
   getById: (id: number) =>
     api.get<Employee>(`/employees/${id}`),

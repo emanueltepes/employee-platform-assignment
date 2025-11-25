@@ -306,7 +306,8 @@ public class HuggingFaceService {
         return String.format(
             "Generate exactly 3 different professional versions of the following employee feedback. " +
             "Each version should be clear, constructive, and professional, but with slightly different wording and tone. " +
-            "Format your response as:\n" +
+            "DO NOT include any introductory text, explanations, or headers. " +
+            "ONLY respond with the three options in this exact format:\n\n" +
             "OPTION 1: [first version]\n" +
             "OPTION 2: [second version]\n" +
             "OPTION 3: [third version]\n\n" +
@@ -351,20 +352,35 @@ public class HuggingFaceService {
 
         for (String line : lines) {
             line = line.trim();
-            if (line.startsWith("OPTION 1:") || line.startsWith("Option 1:") || line.startsWith("1.")) {
-                option1 = line.replaceFirst("^(OPTION 1:|Option 1:|1\\.)", "").trim();
-            } else if (line.startsWith("OPTION 2:") || line.startsWith("Option 2:") || line.startsWith("2.")) {
-                option2 = line.replaceFirst("^(OPTION 2:|Option 2:|2\\.)", "").trim();
-            } else if (line.startsWith("OPTION 3:") || line.startsWith("Option 3:") || line.startsWith("3.")) {
-                option3 = line.replaceFirst("^(OPTION 3:|Option 3:|3\\.)", "").trim();
+            
+            // Skip empty lines and common introductory phrases
+            if (line.isEmpty() || 
+                line.toLowerCase().contains("here are") ||
+                line.toLowerCase().contains("professional versions") ||
+                line.toLowerCase().contains("below are") ||
+                line.toLowerCase().contains("i've generated")) {
+                continue;
+            }
+            
+            if (line.startsWith("OPTION 1:") || line.startsWith("Option 1:") || line.startsWith("1.") || line.startsWith("1:")) {
+                option1 = line.replaceFirst("^(OPTION 1:|Option 1:|1\\.|1:)", "").trim();
+            } else if (line.startsWith("OPTION 2:") || line.startsWith("Option 2:") || line.startsWith("2.") || line.startsWith("2:")) {
+                option2 = line.replaceFirst("^(OPTION 2:|Option 2:|2\\.|2:)", "").trim();
+            } else if (line.startsWith("OPTION 3:") || line.startsWith("Option 3:") || line.startsWith("3.") || line.startsWith("3:")) {
+                option3 = line.replaceFirst("^(OPTION 3:|Option 3:|3\\.|3:)", "").trim();
             }
         }
 
-        // If parsing failed, try splitting by newlines and take first 3 non-empty lines
+        // If parsing failed, try splitting by newlines and take first 3 non-empty lines that look like feedback
         if (option1.isEmpty() || option2.isEmpty() || option3.isEmpty()) {
             List<String> nonEmptyLines = java.util.Arrays.stream(lines)
                     .map(String::trim)
-                    .filter(l -> !l.isEmpty() && !l.toLowerCase().startsWith("option"))
+                    .filter(l -> !l.isEmpty() && 
+                           !l.toLowerCase().startsWith("option") &&
+                           !l.toLowerCase().contains("here are") &&
+                           !l.toLowerCase().contains("professional versions") &&
+                           !l.toLowerCase().contains("below are") &&
+                           l.length() > 20) // Must be substantial feedback
                     .limit(3)
                     .collect(java.util.stream.Collectors.toList());
 
