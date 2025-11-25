@@ -12,6 +12,33 @@ A full-stack enterprise HR management system featuring multiple user roles, abse
 - **Employee Account:** `employee` / `password123`
 - **Coworker Account:** `coworker` / `password123`
 
+### 📖 How to Use the App
+
+**As a Manager** (`manager` / `password123`):
+1. **Dashboard**: Browse all employees with search and pagination
+2. **Employee Profiles**: Click any employee to view/edit their full details
+3. **Manage Absences**: View all pending requests in the "Absences" tab, approve or reject them
+4. **Leave Feedback**: Visit any employee's profile to leave performance feedback
+5. **AI Assistance**: Use the "Get AI Suggestions" button for professional feedback options
+
+**As an Employee** (`employee` / `password123`):
+1. **View Profile**: See your own employee information
+2. **Request Time Off**: Create absence requests with date ranges and reasons
+3. **Track Requests**: Monitor status of your absence requests (Pending/Approved/Rejected)
+4. **Edit Contact Info**: Update your phone, address, and emergency contact
+5. **View Feedback**: See feedback left by managers and coworkers
+
+**As a Coworker** (`coworker` / `password123`):
+1. **Browse Employees**: Search and view colleague profiles
+2. **Leave Feedback**: Provide peer feedback for team members
+3. **View Public Info**: Access basic information about other employees
+
+**Key Features to Try**:
+- 🔍 **Search**: Try searching for names, positions, or departments
+- 📄 **Pagination**: Navigate through employee pages with smart page controls
+- 🤖 **AI Feedback**: Generate 3 professional feedback suggestions 
+- 📊 **System Health**: Check the header for real-time metrics (DB, Cache, Circuit Breaker)
+- 🔔 **Live Notifications**: Badge updates when new absence requests are submitted
 ---
 
 ## ⚡ Quick Start with Docker

@@ -91,8 +91,10 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-lg text-gray-600">Loading...</div>
+      <div className="flex flex-col justify-center items-center h-64">
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+        <div className="text-lg text-gray-600">Loading employees...</div>
+        <div className="text-sm text-gray-400 mt-2">Free tier may take ~30s to wake up from sleep</div>
       </div>
     );
   }

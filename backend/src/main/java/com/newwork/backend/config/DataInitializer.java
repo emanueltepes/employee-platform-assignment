@@ -60,14 +60,12 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) {
         if (userRepository.count() == 0) {
             long startTime = System.currentTimeMillis();
-            log.info("🚀 Initializing 200 employees with parallel processing...");
-            
             // Create test users first
             createTestUsers();
-            
+
             // Multi-threaded employee generation
-            int totalEmployees = 200;
-            int batchSize = 50;
+            int totalEmployees = 50;
+            int batchSize = 25;
             int numBatches = totalEmployees / batchSize;
             int numThreads = Runtime.getRuntime().availableProcessors(); // Use all available CPU cores
             
@@ -104,7 +102,7 @@ public class DataInitializer implements CommandLineRunner {
             
             long endTime = System.currentTimeMillis();
             double seconds = (endTime - startTime) / 1000.0;
-            log.info("🎉 Successfully initialized {} employees in {:.2f} seconds!", 
+            log.info("🎉 Successfully initialized {} employees in {:.2f} seconds! (optimized for free tier)",
                     totalEmployees + 3, seconds);
             log.info("⚡ Average: {:.0f} employees/second", (totalEmployees / seconds));
             
