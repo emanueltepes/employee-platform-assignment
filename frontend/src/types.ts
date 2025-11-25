@@ -118,6 +118,9 @@ export interface SystemHealth {
     db?: {
       status: string;
     };
+    redis?: {
+      status: string;
+    };
     diskSpace?: {
       status: string;
     };
