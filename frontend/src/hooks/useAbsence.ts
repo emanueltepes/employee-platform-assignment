@@ -73,31 +73,19 @@ export const useAbsence = (employeeId: number, onSuccess: () => void) => {
   }, [employeeId, formData, onSuccess]);
 
   const handleUpdateStatus = useCallback(async (absenceId: number, status: 'APPROVED' | 'REJECTED') => {
-    console.log(`[useAbsence] Updating absence ${absenceId} to ${status}`);
     setUpdatingStatusId(absenceId);
     try {
-      const response = await absenceApi.updateStatus(absenceId, status);
-      console.log(`[useAbsence] Update successful, response:`, response.data);
-      console.log(`[useAbsence] BEFORE refresh - calling onSuccess...`);
+      await absenceApi.updateStatus(absenceId, status);
       
-      // Add a small delay to ensure backend cache eviction completes
+      // Small delay to ensure backend transaction completes
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      await onSuccess(); // Make sure onSuccess is awaited
-      console.log(`[useAbsence] AFTER refresh - Employee data should be refreshed now!`);
+      await onSuccess();
       
       // Notify Layout to refresh pending count
       window.dispatchEvent(new Event('refreshAbsenceCount'));
-      
-      // Force a second refresh to be absolutely sure
-      setTimeout(async () => {
-        console.log(`[useAbsence] Double-check refresh after 300ms...`);
-        await onSuccess();
-      }, 300);
-      
-      console.log(`✅ Absence request ${status.toLowerCase()} successfully!`);
     } catch (err: any) {
-      console.error(`[useAbsence] Failed to update status:`, err);
+      console.error(`Failed to update absence status:`, err);
       alert(err.response?.data?.message || 'Failed to update absence status');
     } finally {
       setUpdatingStatusId(null);

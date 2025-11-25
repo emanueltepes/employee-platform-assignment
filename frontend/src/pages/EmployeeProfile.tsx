@@ -101,7 +101,6 @@ const EmployeeProfile = () => {
 
       {showAbsenceSection && (
         <AbsenceSection
-          key={`absences-${employeeId}-${JSON.stringify(employee.absences)}`}
           absences={employee.absences}
           showForm={absence.showForm}
           formData={absence.formData}
