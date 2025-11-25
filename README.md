@@ -127,11 +127,6 @@ export HUGGINGFACE_API_KEY=your_api_key_here
    - Automatic recovery with half-open state
    - Configurable thresholds (50% failure rate, 10s wait)
 
-5. **Parallel Data Initialization**
-   - Multi-threaded employee creation (10 threads)
-   - CompletableFuture for async batch processing
-   - Initializes 200 employees with ~8,000 absence records in ~4 seconds
-
 #### Database Schema
 
 **Core Entities:**
