@@ -1,4 +1,4 @@
-# Employee Management Platform - Demo project
+# Employee Management Platform - Demo project vibe coded with Sonnet 4.5
 
 A full-stack enterprise HR management system featuring multiple user roles, absence requests, and AI-powered feedback generation. The purpose of this project is to showcase a few backend concepts such as caching, pagination, circuit breakers, api integrations, etc.
 
@@ -79,7 +79,7 @@ export HUGGINGFACE_API_KEY=your_api_key_here
 
 ```
 ┌─────────────┐      ┌─────────────┐      ┌──────────────┐
-│   React     │◄────►│  Spring     │◄────►│  PostgreSQL  │
+│   React     │◄────►│  Spring     │◄────►│  In memory   │
 │  Frontend   │      │   Boot      │      │   Database   │
 └─────────────┘      └─────────────┘      └──────────────┘
                             │
