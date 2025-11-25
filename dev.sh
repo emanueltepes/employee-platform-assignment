@@ -9,9 +9,9 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}🐳 Employee Platform - Development Environment${NC}"
 echo -e "${BLUE}================================================${NC}\n"
 
-# Stop any running containers
+# Stop any running containers using stop.sh
 echo -e "${YELLOW}Stopping existing containers...${NC}"
-docker-compose -f docker-compose.dev.yml down
+./stop.sh
 
 # Rebuild everything from scratch
 echo -e "\n${YELLOW}Rebuilding all containers (this may take a few minutes)...${NC}"

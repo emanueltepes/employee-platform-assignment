@@ -21,14 +21,25 @@ public class EmployeeController {
     public ResponseEntity<?> getAllEmployees(
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "lastName") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir
     ) {
         // If pagination parameters are provided, return paginated response
         if (page != null && size != null) {
-            Page<EmployeeDto> employeePage = employeeService.getEmployeesPaginated(
-                    page, size, sortBy, sortDir
-            );
+            Page<EmployeeDto> employeePage;
+            
+            // If search term is provided, use search
+            if (search != null && !search.trim().isEmpty()) {
+                employeePage = employeeService.searchEmployees(
+                        search.trim(), page, size, sortBy, sortDir
+                );
+            } else {
+                employeePage = employeeService.getEmployeesPaginated(
+                        page, size, sortBy, sortDir
+                );
+            }
+            
             return ResponseEntity.ok(employeePage);
         }
         

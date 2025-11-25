@@ -1,4 +1,19 @@
 services:
+  # Redis Cache Service
+  redis:
+    image: redis:7-alpine
+    container_name: newwork-redis-dev
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network-dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
   # Backend Service
   backend:
     build:
@@ -19,13 +34,20 @@ services:
       # H2 Console
       SPRING_H2_CONSOLE_ENABLED: "true"
       
-      # HuggingFace (optional)
-      HUGGINGFACE_API_KEY: ${HUGGINGFACE_API_KEY:-}
+      # HuggingFace (optional) - Use 'INVALID' to test circuit breaker
+      HUGGINGFACE_API_KEY: ${HUGGINGFACE_API_KEY:-INVALID_KEY_FOR_TESTING}
       HUGGINGFACE_MODEL: meta-llama/Meta-Llama-3-8B-Instruct
       HUGGINGFACE_TIMEOUT: 50
       
+      # Redis Cache
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      
       # Logging
       LOGGING_LEVEL_COM_NEWWORK_BACKEND: DEBUG
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - app-network-dev
     restart: unless-stopped
@@ -43,7 +65,10 @@ services:
       - ./frontend/index.html:/app/index.html:ro
       - ./frontend/public:/app/public:ro
     depends_on:
-      - backend
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
     networks:
       - app-network-dev
     restart: unless-stopped

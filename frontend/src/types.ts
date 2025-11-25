@@ -105,3 +105,40 @@ export interface PageResponse<T> {
   empty: boolean;
 }
 
+// Metrics & Monitoring Types
+export interface SystemHealth {
+  status: 'UP' | 'DOWN';
+  components?: {
+    circuitBreakers?: {
+      status: string;
+      details?: {
+        huggingface?: string;
+      };
+    };
+    db?: {
+      status: string;
+    };
+    diskSpace?: {
+      status: string;
+    };
+  };
+}
+
+export interface CircuitBreakerStatus {
+  circuitBreakers: {
+    [key: string]: {
+      state: 'CLOSED' | 'OPEN' | 'HALF_OPEN';
+      failureRate: number;
+      slowCallRate: number;
+    };
+  };
+}
+
+export interface MetricValue {
+  name: string;
+  measurements: Array<{
+    statistic: string;
+    value: number;
+  }>;
+}
+

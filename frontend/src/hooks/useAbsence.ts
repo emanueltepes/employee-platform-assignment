@@ -5,7 +5,16 @@ import type { AbsenceRequest } from '../types';
 export const useAbsence = (employeeId: number, onSuccess: () => void) => {
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
   const [formData, setFormData] = useState<AbsenceRequest>({
+    startDate: '',
+    endDate: '',
+    type: 'VACATION',
+    reason: '',
+  });
+  const [editFormData, setEditFormData] = useState<AbsenceRequest>({
     startDate: '',
     endDate: '',
     type: 'VACATION',
@@ -59,13 +68,121 @@ export const useAbsence = (employeeId: number, onSuccess: () => void) => {
     }
   }, [employeeId, formData, onSuccess]);
 
+  const handleUpdateStatus = useCallback(async (absenceId: number, status: 'APPROVED' | 'REJECTED') => {
+    console.log(`[useAbsence] Updating absence ${absenceId} to ${status}`);
+    setUpdatingStatusId(absenceId);
+    try {
+      const response = await absenceApi.updateStatus(absenceId, status);
+      console.log(`[useAbsence] Update successful, response:`, response.data);
+      console.log(`[useAbsence] BEFORE refresh - calling onSuccess...`);
+      
+      // Add a small delay to ensure backend cache eviction completes
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      await onSuccess(); // Make sure onSuccess is awaited
+      console.log(`[useAbsence] AFTER refresh - Employee data should be refreshed now!`);
+      
+      // Force a second refresh to be absolutely sure
+      setTimeout(async () => {
+        console.log(`[useAbsence] Double-check refresh after 300ms...`);
+        await onSuccess();
+      }, 300);
+      
+      alert(`Absence request ${status.toLowerCase()} successfully!`);
+    } catch (err: any) {
+      console.error(`[useAbsence] Failed to update status:`, err);
+      alert(err.response?.data?.message || 'Failed to update absence status');
+    } finally {
+      setUpdatingStatusId(null);
+    }
+  }, [onSuccess]);
+
+  const handleEdit = useCallback((absence: { id: number; startDate: string; endDate: string; type: any; reason?: string }) => {
+    setEditingId(absence.id);
+    setEditFormData({
+      startDate: absence.startDate,
+      endDate: absence.endDate,
+      type: absence.type,
+      reason: absence.reason || '',
+    });
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingId(null);
+    setEditFormData({
+      startDate: '',
+      endDate: '',
+      type: 'VACATION',
+      reason: '',
+    });
+  }, []);
+
+  const handleUpdateSubmit = useCallback(async (absenceId: number, e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Frontend validation
+    const start = new Date(editFormData.startDate);
+    const end = new Date(editFormData.endDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (start > end) {
+      alert('Start date must be before or equal to end date');
+      return;
+    }
+    
+    if (start < today) {
+      alert('Cannot set absence dates in the past');
+      return;
+    }
+    
+    setSubmitting(true);
+    try {
+      await absenceApi.update(absenceId, editFormData);
+      setEditingId(null);
+      onSuccess();
+      alert('Absence request updated successfully!');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to update absence request');
+    } finally {
+      setSubmitting(false);
+    }
+  }, [editFormData, onSuccess]);
+
+  const handleDelete = useCallback(async (absenceId: number) => {
+    if (!confirm('Are you sure you want to delete this absence request?')) {
+      return;
+    }
+    
+    setDeletingId(absenceId);
+    try {
+      await absenceApi.delete(absenceId);
+      onSuccess();
+      alert('Absence request deleted successfully!');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to delete absence request');
+    } finally {
+      setDeletingId(null);
+    }
+  }, [onSuccess]);
+
   return {
     showForm,
     setShowForm,
     formData,
     setFormData,
+    editFormData,
+    setEditFormData,
     submitting,
+    editingId,
+    deletingId,
+    updatingStatusId,
     handleSubmit,
+    handleEdit,
+    handleCancelEdit,
+    handleUpdateSubmit,
+    handleUpdateStatus,
+    handleDelete,
     getTodayString,
     getMinEndDate,
   };

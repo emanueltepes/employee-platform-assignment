@@ -12,6 +12,10 @@ export default defineConfig({
         target: process.env.VITE_API_URL || 'http://backend:8080',
         changeOrigin: true,
       },
+      '/actuator': {
+        target: process.env.VITE_API_URL || 'http://backend:8080',
+        changeOrigin: true,
+      },
     },
   },
   preview: {
@@ -23,6 +27,10 @@ export default defineConfig({
     ],
     proxy: {
       '/api': {
+        target: process.env.VITE_API_URL || 'http://backend:8080',
+        changeOrigin: true,
+      },
+      '/actuator': {
         target: process.env.VITE_API_URL || 'http://backend:8080',
         changeOrigin: true,
       },

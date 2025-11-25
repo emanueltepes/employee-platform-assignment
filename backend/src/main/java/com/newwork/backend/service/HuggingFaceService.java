@@ -1,9 +1,14 @@
 package com.newwork.backend.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -13,10 +18,16 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @Slf4j
 public class HuggingFaceService {
+    
+    private final Counter apiCallCounter;
+    private final Counter apiSuccessCounter;
+    private final Counter apiFailureCounter;
+    private final Timer apiResponseTimer;
 
     private final WebClient webClient;
 
@@ -29,22 +40,39 @@ public class HuggingFaceService {
     @Value("${huggingface.timeout:30}")
     private int timeoutSeconds;
 
-    public HuggingFaceService(WebClient.Builder webClientBuilder) {
+    public HuggingFaceService(WebClient.Builder webClientBuilder, MeterRegistry meterRegistry) {
         this.webClient = webClientBuilder
                 .baseUrl("https://router.huggingface.co/v1")
                 .build();
+        
+        // Initialize custom metrics
+        this.apiCallCounter = Counter.builder("huggingface.api.calls")
+                .description("Total number of HuggingFace API calls")
+                .register(meterRegistry);
+        this.apiSuccessCounter = Counter.builder("huggingface.api.success")
+                .description("Successful HuggingFace API calls")
+                .register(meterRegistry);
+        this.apiFailureCounter = Counter.builder("huggingface.api.failure")
+                .description("Failed HuggingFace API calls")
+                .register(meterRegistry);
+        this.apiResponseTimer = Timer.builder("huggingface.api.response.time")
+                .description("HuggingFace API response time")
+                .register(meterRegistry);
     }
 
+    @CircuitBreaker(name = "huggingface", fallbackMethod = "polishFeedbackFallback")
     public String polishFeedback(String feedback) {
         if (apiKey == null || apiKey.isEmpty()) {
-            log.info("HuggingFace API key not configured. Using rule-based improvement.");
-            return improveWithPrompt(feedback);
+            log.error("HuggingFace API key not configured.");
+            throw new RuntimeException("AI service is not configured. Please contact support.");
         }
 
         if (feedback == null || feedback.trim().isEmpty()) {
             return feedback;
         }
 
+        return apiResponseTimer.record(() -> {
+            apiCallCounter.increment();
         try {
             log.info("Calling HuggingFace API with model: {}", model);
             String polished = callHuggingFaceInferenceApi(feedback)
@@ -53,53 +81,104 @@ public class HuggingFaceService {
 
             if (polished != null && !polished.trim().isEmpty() && !polished.equals(feedback)) {
                 log.info("Successfully polished feedback using AI");
+                    apiSuccessCounter.increment();
                 return polished;
             } else {
                 log.warn("AI returned empty or same result, using rule-based improvement");
                 return improveWithPrompt(feedback);
             }
         } catch (WebClientResponseException e) {
+                apiFailureCounter.increment();
             log.error("HuggingFace API error (status {}): {}", e.getStatusCode(), e.getMessage());
             if (e.getStatusCode().value() == 503) {
                 log.info("Model is loading, this can take 20-30 seconds on first request");
             }
-            return improveWithPrompt(feedback);
-        } catch (Exception e) {
-            log.error("Error calling HuggingFace API: {} - {}", e.getClass().getSimpleName(), e.getMessage());
-            return improveWithPrompt(feedback);
-        }
+                throw new RuntimeException("HuggingFace API error", e);
+            } catch (Exception e) {
+                apiFailureCounter.increment();
+                log.error("Error calling HuggingFace API: {} - {}", e.getClass().getSimpleName(), e.getMessage());
+                throw new RuntimeException("HuggingFace API error", e);
+            }
+        });
+    }
+    
+    /**
+     * Fallback method for circuit breaker - throws exception to notify user
+     */
+    private String polishFeedbackFallback(String feedback, Exception e) {
+        log.error("Circuit breaker OPEN or API failed for polishFeedback. Error: {}", e.getMessage());
+        throw new RuntimeException("AI service is currently unavailable. Please try again later.");
     }
 
     /**
      * Generate three different polished versions of the feedback for user to choose from
+     * Async to prevent blocking during suggestions generation
      */
+    @Async("taskExecutor")
+    @CircuitBreaker(name = "huggingface", fallbackMethod = "generateFeedbackOptionsFallback")
+    public CompletableFuture<List<String>> generateFeedbackOptionsAsync(String feedback) {
+        if (feedback == null || feedback.trim().isEmpty()) {
+            return CompletableFuture.completedFuture(List.of(feedback, feedback, feedback));
+        }
+        
+        List<String> options = generateFeedbackOptions(feedback);
+        return CompletableFuture.completedFuture(options);
+    }
+    
+    /**
+     * Fallback for async feedback options - throws exception to notify user
+     */
+    private CompletableFuture<List<String>> generateFeedbackOptionsFallback(String feedback, Exception e) {
+        log.error("Circuit breaker OPEN or API failed for generateFeedbackOptions. Error: {}", e.getMessage());
+        CompletableFuture<List<String>> future = new CompletableFuture<>();
+        future.completeExceptionally(new RuntimeException("AI service is currently unavailable. Please try again later."));
+        return future;
+    }
+    
+    /**
+     * Synchronous version - Generate three different polished versions of the feedback for user to choose from
+     */
+    @CircuitBreaker(name = "huggingface", fallbackMethod = "generateFeedbackOptionsSyncFallback")
     public List<String> generateFeedbackOptions(String feedback) {
         if (feedback == null || feedback.trim().isEmpty()) {
-            return List.of(feedback, feedback, feedback);
+            throw new IllegalArgumentException("Feedback content cannot be empty");
         }
 
         if (apiKey == null || apiKey.isEmpty()) {
-            log.info("HuggingFace API key not configured. Using rule-based options.");
-            return generateFallbackOptions(feedback);
+            log.error("HuggingFace API key not configured.");
+            throw new RuntimeException("AI service is not configured. Please contact support.");
         }
 
+        // Increment API call counter
+        apiCallCounter.increment();
+        
         try {
-            log.info("Generating 3 feedback options using AI");
+            log.info("Generating 3 feedback options using AI (API call #{} recorded)", apiCallCounter.count());
             List<String> options = callHuggingFaceForOptions(feedback)
                     .timeout(Duration.ofSeconds(timeoutSeconds))
                     .block();
 
             if (options != null && options.size() == 3) {
                 log.info("Successfully generated 3 feedback options");
+                apiSuccessCounter.increment();
                 return options;
             } else {
                 log.warn("AI returned invalid options, using fallback");
                 return generateFallbackOptions(feedback);
             }
         } catch (Exception e) {
+            apiFailureCounter.increment();
             log.error("Error generating feedback options: {} - {}", e.getClass().getSimpleName(), e.getMessage());
-            return generateFallbackOptions(feedback);
+            throw new RuntimeException("Failed to generate feedback options", e);
         }
+    }
+    
+    /**
+     * Fallback for synchronous feedback options - throws exception to notify user
+     */
+    private List<String> generateFeedbackOptionsSyncFallback(String feedback, Exception e) {
+        log.error("Circuit breaker OPEN or API failed for generateFeedbackOptions (sync). Error: {}", e.getMessage());
+        throw new RuntimeException("AI service is currently unavailable. Please try again later.");
     }
 
     private Mono<String> callHuggingFaceInferenceApi(String text) {

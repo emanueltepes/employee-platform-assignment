@@ -1,37 +1,46 @@
 package com.newwork.backend.config;
 
-import org.springframework.cache.CacheManager;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.cache.RedisCacheConfiguration;
+import org.springframework.data.redis.cache.RedisCacheManager;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.RedisSerializationContext;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 
-/**
- * Simple in-memory cache configuration using Spring's built-in cache.
- * No serialization issues, perfect for development and moderate traffic.
- * For production with multiple instances, consider Redis with proper serialization.
- */
+import java.time.Duration;
+
 @Configuration
 @EnableCaching
 public class CacheConfig {
-
-    // Cache names as constants
-    public static final String EMPLOYEE_BY_ID_CACHE = "employee";
+    
+    // Cache names - only for employee list
     public static final String EMPLOYEES_CACHE = "employees";
-    public static final String FEEDBACKS_CACHE = "feedbacks";
-
+    
     @Bean
-    public CacheManager cacheManager() {
-        // Simple in-memory cache - no serialization, stores Java objects directly
-        ConcurrentMapCacheManager cacheManager = new ConcurrentMapCacheManager(
-                EMPLOYEE_BY_ID_CACHE,
-                EMPLOYEES_CACHE,
-                FEEDBACKS_CACHE
-        );
+    public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+        // Configure ObjectMapper to handle LocalDate and other Java 8 time types
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         
-        // Allow dynamic cache creation
-        cacheManager.setAllowNullValues(false);
+        // Create serializer with custom ObjectMapper
+        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
         
-        return cacheManager;
+        RedisCacheConfiguration cacheConfig = RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(10)) // Cache for 10 minutes
+                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
+                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer))
+                .disableCachingNullValues();
+        
+        return RedisCacheManager.builder(connectionFactory)
+                .cacheDefaults(cacheConfig)
+                .build();
     }
 }
+

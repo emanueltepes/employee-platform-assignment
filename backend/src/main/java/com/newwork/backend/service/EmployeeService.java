@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -35,9 +34,8 @@ public class EmployeeService {
     private final EmployeeMapper employeeMapper;
     
     @Transactional(readOnly = true)
-    @Cacheable(value = CacheConfig.EMPLOYEE_BY_ID_CACHE, key = "#id")
     public EmployeeDto getEmployeeById(Long id) {
-        log.info("Fetching employee from database: {}", id);
+        log.info("Fetching employee from database (uncached): {}", id);
         // Fetch employee with absences first
         Employee employee = employeeRepository.findByIdWithAbsences(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
@@ -68,8 +66,8 @@ public class EmployeeService {
     @Transactional(readOnly = true)
     @Cacheable(value = CacheConfig.EMPLOYEES_CACHE, key = "'all'")
     public List<EmployeeDto> getAllEmployees() {
-        log.info("Fetching all employees from database");
-        List<Employee> employees = employeeRepository.findAll();
+        log.info("Fetching all employees from database (with EntityGraph optimization) - CACHE MISS");
+        List<Employee> employees = employeeRepository.findAllWithUser();
         User currentUser = getCurrentUser();
         
         return employees.stream()
@@ -119,11 +117,34 @@ public class EmployeeService {
         });
     }
     
+    @Transactional(readOnly = true)
+    public Page<EmployeeDto> searchEmployees(String searchTerm, int page, int size, String sortBy, String sortDir) {
+        log.info("Searching employees with term '{}' on page {} with size {}", searchTerm, page, size);
+        
+        Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        
+        Page<Employee> employeePage = employeeRepository.searchEmployees(searchTerm, pageable);
+        User currentUser = getCurrentUser();
+        
+        return employeePage.map(employee -> {
+            EmployeeDto dto = employeeMapper.toDto(employee);
+            if (!canViewSensitiveData(currentUser, employee)) {
+                dto.setSalary(null);
+                dto.setDateOfBirth(null);
+                dto.setSocialSecurityNumber(null);
+                dto.setBankAccount(null);
+                dto.setAddress(null);
+                dto.setEmergencyContact(null);
+                dto.setHireDate(null);
+                dto.setContractType(null);
+            }
+            return dto;
+        });
+    }
+    
     @Transactional
-    @Caching(evict = {
-        @CacheEvict(value = CacheConfig.EMPLOYEE_BY_ID_CACHE, key = "#id"),
-        @CacheEvict(value = CacheConfig.EMPLOYEES_CACHE, allEntries = true)
-    })
+    @CacheEvict(value = CacheConfig.EMPLOYEES_CACHE, allEntries = true)
     public EmployeeDto updateEmployee(Long id, EmployeeUpdateRequest request) {
         log.info("Updating employee {} and clearing cache", id);
         Employee employee = employeeRepository.findById(id)

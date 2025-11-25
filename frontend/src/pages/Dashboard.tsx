@@ -38,17 +38,49 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [pageInputValue, setPageInputValue] = useState('1');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const { user } = useAuth();
+
+  // Trigger search (on button click or ENTER)
+  const handleSearch = () => {
+    setSearchTerm(searchInput.trim());
+    if (currentPage !== 0) {
+      setCurrentPage(0);
+    }
+  };
+
+  // Handle ENTER key press
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  // Clear search
+  const handleClearSearch = () => {
+    setSearchInput('');
+    setSearchTerm('');
+    if (currentPage !== 0) {
+      setCurrentPage(0);
+    }
+  };
 
   useEffect(() => {
     loadEmployees();
     setPageInputValue(String(currentPage + 1)); // Update input when page changes
-  }, [currentPage]);
+  }, [currentPage, searchTerm]);
 
   const loadEmployees = async () => {
     try {
       setLoading(true);
-      const response = await employeeApi.getAllPaginated(currentPage, pageSize);
+      const response = await employeeApi.getAllPaginated(
+        currentPage, 
+        pageSize, 
+        'lastName', 
+        'asc',
+        searchTerm || undefined
+      );
       setPageData(response.data);
     } catch (err: any) {
       setError('Failed to load employees');
@@ -75,6 +107,7 @@ const Dashboard = () => {
 
   const employees = pageData?.content || [];
   const totalPages = pageData?.totalPages || 0;
+  const totalResults = pageData?.totalElements || 0;
 
   return (
     <div>
@@ -85,20 +118,94 @@ const Dashboard = () => {
         </p>
       </div>
 
-      <div className="mb-6">
+      {/* Search and Actions */}
+      <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="flex-1 max-w-2xl">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="Search by name, position, or department..."
+                className="input w-full pl-10 pr-10"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+              />
+              <svg
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              {searchInput && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  title="Clear search"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+            <button
+              onClick={handleSearch}
+              className="btn btn-primary px-6"
+              disabled={!searchInput.trim()}
+            >
+              Search
+            </button>
+          </div>
+          {searchTerm && (
+            <p className="mt-2 text-sm text-gray-600">
+              Found {totalResults} employee{totalResults !== 1 ? 's' : ''} matching "{searchTerm}"
+            </p>
+          )}
+        </div>
         <Link
           to={`/employee/${user?.employeeId}`}
-          className="btn btn-primary inline-block"
+          className="btn btn-secondary whitespace-nowrap"
         >
           View My Profile
         </Link>
       </div>
 
+      {/* Employee Grid */}
+      {employees.length === 0 ? (
+        <div className="card text-center text-gray-500 py-12">
+          <svg
+            className="mx-auto h-12 w-12 text-gray-400 mb-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <p className="text-lg font-medium">No employees found</p>
+          <p className="text-sm mt-1">
+            {searchTerm ? `No results for "${searchTerm}"` : 'Try a different search term'}
+          </p>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {employees.map((employee) => (
           <EmployeeCard key={employee.id} employee={employee} />
         ))}
       </div>
+      )}
 
       {/* Pagination Controls */}
       {totalPages > 1 && (

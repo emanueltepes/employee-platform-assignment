@@ -36,6 +36,20 @@ public class AbsenceController {
         return ResponseEntity.ok(absenceService.getAllAbsences());
     }
     
+    @PutMapping("/{absenceId}")
+    public ResponseEntity<AbsenceDto> updateAbsence(
+            @PathVariable Long absenceId,
+            @Valid @RequestBody AbsenceRequest request
+    ) {
+        return ResponseEntity.ok(absenceService.updateAbsence(absenceId, request));
+    }
+    
+    @DeleteMapping("/{absenceId}")
+    public ResponseEntity<Void> deleteAbsence(@PathVariable Long absenceId) {
+        absenceService.deleteAbsence(absenceId);
+        return ResponseEntity.noContent().build();
+    }
+    
     @PutMapping("/{absenceId}/status")
     public ResponseEntity<AbsenceDto> updateAbsenceStatus(
             @PathVariable Long absenceId,

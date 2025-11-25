@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { useEmployee } from '../hooks/useEmployee';
@@ -31,13 +31,19 @@ const EmployeeProfile = () => {
   const absence = useAbsence(employeeId, refreshEmployee);
   const feedback = useFeedback(employeeId, refreshEmployee);
 
+  // Force refresh whenever this component mounts or route changes
+  useEffect(() => {
+    console.log(`[EmployeeProfile] Component mounted/route changed for employee ${employeeId}`);
+    refreshEmployee();
+  }, [employeeId, refreshEmployee]);
+
   // Memoize permission checks to prevent recalculation on every render
   const isManager = useMemo(() => user?.role === 'MANAGER', [user]);
   const canEdit = useMemo(() => user?.role === 'MANAGER' || user?.employeeId === employeeId, [user, employeeId]);
-  const canRequestAbsence = useMemo(() => user?.employeeId === employeeId, [user, employeeId]);
   const isViewingOwnProfile = useMemo(() => user?.employeeId === employeeId, [user, employeeId]);
   const canLeaveFeedback = useMemo(() => (user?.role === 'COWORKER' || user?.role === 'MANAGER') && !isViewingOwnProfile, [user, isViewingOwnProfile]);
   const showSensitiveData = useMemo(() => user?.role === 'MANAGER' || user?.employeeId === employeeId, [user, employeeId]);
+  const showAbsenceSection = useMemo(() => isManager || isViewingOwnProfile, [isManager, isViewingOwnProfile]);
 
   const handleEditToggle = async () => {
     if (editing) {
@@ -93,15 +99,28 @@ const EmployeeProfile = () => {
         </div>
       </div>
 
-      {canRequestAbsence && (
+      {showAbsenceSection && (
         <AbsenceSection
+          key={`absences-${employeeId}-${JSON.stringify(employee.absences)}`}
           absences={employee.absences}
           showForm={absence.showForm}
           formData={absence.formData}
+          editFormData={absence.editFormData}
           submitting={absence.submitting}
+          editingId={absence.editingId}
+          deletingId={absence.deletingId}
+          updatingStatusId={absence.updatingStatusId}
+          isManager={isManager}
+          isOwnProfile={isViewingOwnProfile}
           onToggleForm={() => absence.setShowForm(!absence.showForm)}
           onFormChange={absence.setFormData}
+          onEditFormChange={absence.setEditFormData}
           onSubmit={absence.handleSubmit}
+          onEdit={absence.handleEdit}
+          onCancelEdit={absence.handleCancelEdit}
+          onUpdateSubmit={absence.handleUpdateSubmit}
+          onUpdateStatus={absence.handleUpdateStatus}
+          onDelete={absence.handleDelete}
           getTodayString={absence.getTodayString}
           getMinEndDate={absence.getMinEndDate}
         />

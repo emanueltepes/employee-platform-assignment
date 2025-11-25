@@ -43,13 +43,20 @@ export const employeeApi = {
   getAll: () =>
     api.get<Employee[]>('/employees'),
   
-  getAllPaginated: (page: number, size: number, sortBy = 'lastName', sortDir = 'asc') =>
+  getAllPaginated: (page: number, size: number, sortBy = 'lastName', sortDir = 'asc', search?: string) =>
     api.get<PageResponse<Employee>>('/employees', {
-      params: { page, size, sortBy, sortDir }
+      params: { page, size, sortBy, sortDir, search }
     }),
   
   getById: (id: number) =>
-    api.get<Employee>(`/employees/${id}`),
+    api.get<Employee>(`/employees/${id}`, {
+      headers: { 
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
+      params: { _t: Date.now() } // Cache busting with timestamp
+    }),
   
   getMyProfile: () =>
     api.get<Employee>('/employees/me'),
@@ -63,16 +70,43 @@ export const absenceApi = {
   create: (employeeId: number, data: AbsenceRequest) =>
     api.post<Absence>(`/absences/employee/${employeeId}`, data),
   
+  update: (absenceId: number, data: AbsenceRequest) =>
+    api.put<Absence>(`/absences/${absenceId}`, data),
+  
+  delete: (absenceId: number) =>
+    api.delete(`/absences/${absenceId}`),
+  
   getByEmployee: (employeeId: number) =>
-    api.get<Absence[]>(`/absences/employee/${employeeId}`),
+    api.get<Absence[]>(`/absences/employee/${employeeId}`, {
+      headers: { 
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
+      params: { _t: Date.now() } // Cache busting with timestamp
+    }),
   
   getAll: () =>
-    api.get<Absence[]>('/absences'),
-  
-  updateStatus: (absenceId: number, status: string) =>
-    api.put<Absence>(`/absences/${absenceId}/status`, null, {
-      params: { status },
+    api.get<Absence[]>('/absences', {
+      headers: { 
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
+      params: { _t: Date.now() } // Cache busting with timestamp
     }),
+  
+  updateStatus: (absenceId: number, status: string) => {
+    console.log(`[API] Updating absence ${absenceId} status to ${status}`);
+    return api.put<Absence>(`/absences/${absenceId}/status`, null, {
+      params: { status, _t: Date.now() },
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
+  },
 };
 
 // Feedback APIs
@@ -88,6 +122,23 @@ export const feedbackApi = {
   
   getSuggestions: (data: FeedbackSuggestionsRequest) =>
     api.post<FeedbackSuggestionsResponse>('/feedbacks/suggestions', data),
+};
+
+// Metrics & Monitoring API
+export const metricsApi = {
+  getHealth: () => 
+    axios.get('/actuator/health', {
+      headers: { 'Cache-Control': 'no-cache' }
+    }),
+  getCircuitBreakers: () =>
+    axios.get('/actuator/circuitbreakers', {
+      headers: { 'Cache-Control': 'no-cache' }
+    }),
+  getMetric: (metricName: string) =>
+    axios.get(`/actuator/metrics/${metricName}`, {
+      headers: { 'Cache-Control': 'no-cache' },
+      params: { _t: Date.now() } // Cache busting
+    }),
 };
 
 export default api;

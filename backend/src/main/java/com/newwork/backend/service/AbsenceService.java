@@ -10,6 +10,7 @@ import com.newwork.backend.repository.AbsenceRepository;
 import com.newwork.backend.repository.EmployeeRepository;
 import com.newwork.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AbsenceService {
     
     private final AbsenceRepository absenceRepository;
@@ -70,6 +72,64 @@ public class AbsenceService {
     }
     
     @Transactional
+    public AbsenceDto updateAbsence(Long absenceId, AbsenceRequest request) {
+        User currentUser = getCurrentUser();
+        
+        Absence absence = absenceRepository.findById(absenceId)
+                .orElseThrow(() -> new RuntimeException("Absence not found"));
+        
+        // Only the employee who created it can update
+        if (!absence.getEmployee().getUser().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("You can only update your own absence requests");
+        }
+        
+        // Can only update pending absences
+        if (absence.getStatus() != Absence.AbsenceStatus.PENDING) {
+            throw new RuntimeException("Can only update pending absence requests");
+        }
+        
+        // Validate dates
+        if (request.getStartDate().isAfter(request.getEndDate())) {
+            throw new RuntimeException("Start date must be before or equal to end date");
+        }
+        
+        // Validate dates are not in the past
+        if (request.getStartDate().isBefore(java.time.LocalDate.now())) {
+            throw new RuntimeException("Cannot set absence dates in the past");
+        }
+        
+        // Update fields
+        absence.setStartDate(request.getStartDate());
+        absence.setEndDate(request.getEndDate());
+        absence.setType(request.getType());
+        absence.setReason(request.getReason());
+        
+        absence = absenceRepository.save(absence);
+        
+        return absenceMapper.toDto(absence);
+    }
+    
+    @Transactional
+    public void deleteAbsence(Long absenceId) {
+        User currentUser = getCurrentUser();
+        
+        Absence absence = absenceRepository.findById(absenceId)
+                .orElseThrow(() -> new RuntimeException("Absence not found"));
+        
+        // Only the employee who created it can delete
+        if (!absence.getEmployee().getUser().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("You can only delete your own absence requests");
+        }
+        
+        // Can only delete pending absences
+        if (absence.getStatus() != Absence.AbsenceStatus.PENDING) {
+            throw new RuntimeException("Can only delete pending absence requests");
+        }
+        
+        absenceRepository.delete(absence);
+    }
+    
+    @Transactional
     public AbsenceDto updateAbsenceStatus(Long absenceId, Absence.AbsenceStatus status) {
         User currentUser = getCurrentUser();
         
@@ -84,6 +144,8 @@ public class AbsenceService {
         absence.setStatus(status);
         absence.setApprovedBy(currentUser.getUsername());
         absence = absenceRepository.save(absence);
+        
+        log.info("Updated absence {} status to {} for employee {}", absenceId, status, absence.getEmployee().getId());
         
         return absenceMapper.toDto(absence);
     }
