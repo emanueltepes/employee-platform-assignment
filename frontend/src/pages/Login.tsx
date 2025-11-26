@@ -1,15 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { authApi } from '../api';
+import { authApi, metricsApi } from '../api';
 import { useAuth } from '../AuthContext';
+import { SystemMetrics } from '../components/SystemMetrics';
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [backendWaking, setBackendWaking] = useState(true);
   const navigate = useNavigate();
   const { login } = useAuth();
+
+  // Wake up the backend as soon as the login page loads
+  useEffect(() => {
+    const wakeUpBackend = async () => {
+      try {
+        console.log('🌅 Waking up backend (free tier)...');
+        await metricsApi.getHealth();
+        console.log('✅ Backend is ready!');
+        setBackendWaking(false);
+      } catch (err) {
+        console.log('⏳ Backend still waking up...');
+        // Keep retrying every 3 seconds until it wakes up
+        setTimeout(wakeUpBackend, 3000);
+      }
+    };
+    
+    wakeUpBackend();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,16 +48,34 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            HR Platform
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Sign in to your account
-          </p>
-        </div>
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      {/* System Health Header - shows backend status while waking up */}
+      <div className={`transition-opacity duration-500 ${backendWaking ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
+        <SystemMetrics />
+      </div>
+      
+      <div className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          {/* Backend Status Banner */}
+          {backendWaking && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+              <div className="flex items-center justify-center space-x-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
+                <p className="text-sm text-yellow-800">
+                  Waking up backend (free tier)... This may take ~30 seconds
+                </p>
+              </div>
+            </div>
+          )}
+          
+          <div>
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+              HR Platform
+            </h2>
+            <p className="mt-2 text-center text-sm text-gray-600">
+              Sign in to your account
+            </p>
+          </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
@@ -78,10 +116,10 @@ const Login = () => {
           <div>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || backendWaking}
               className="w-full btn btn-primary disabled:opacity-75"
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              {backendWaking ? 'Waiting for backend...' : loading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
           
@@ -103,6 +141,7 @@ const Login = () => {
             </div>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );
