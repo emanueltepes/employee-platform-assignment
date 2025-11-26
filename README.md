@@ -6,6 +6,8 @@ A full-stack enterprise HR management system featuring multiple user roles, abse
 
 **App is deployed and accessible on Render:** [try it here](https://employee-platform-assignment-fronend.onrender.com)  
 
+Since Render puts services to sleep after a while you might need to wake the backend service up too [open it here](https://employee-platform-assignment.onrender.com)
+
 
 ### Demo Credentials
 - **Manager Account:** `manager` / `password123`
