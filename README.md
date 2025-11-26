@@ -6,6 +6,8 @@ A full-stack enterprise HR management system featuring multiple user roles, abse
 
 **App is deployed and accessible on Render:** [try it here](https://employee-platform-assignment-fronend.onrender.com)  
 
+You might need to prewarm the backend too [here](https://employee-platform-assignment.onrender.com/actuator/health)
+
 
 ### Demo Credentials
 - **Manager Account:** `manager` / `password123`
