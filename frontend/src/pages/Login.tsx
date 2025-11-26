@@ -15,16 +15,36 @@ const Login = () => {
 
   // Wake up the backend as soon as the login page loads
   useEffect(() => {
+    let attempts = 0;
+    const maxAttempts = 2000;
+    
     const wakeUpBackend = async () => {
+      attempts++;
       try {
-        console.log('🌅 Waking up backend (free tier)...');
-        await metricsApi.getHealth();
+        console.log(`🌅 Attempt ${attempts}: Waking up backend (free tier)...`);
+        
+        // Try multiple endpoints to maximize wake-up chances
+        await Promise.race([
+          metricsApi.getHealth(),
+          // Also try a simple fetch without CORS preflight
+          fetch(import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/actuator/health` : 'http://localhost:8080/actuator/health', {
+            mode: 'no-cors', // Bypass CORS - we don't care about the response
+            cache: 'no-cache'
+          })
+        ]);
+        
         console.log('✅ Backend is ready!');
         setBackendWaking(false);
       } catch (err) {
-        console.log('⏳ Backend still waking up...');
-        // Keep retrying every 3 seconds until it wakes up
-        setTimeout(wakeUpBackend, 3000);
+        console.log(`⏳ Attempt ${attempts}/${maxAttempts}: Backend still waking up...`);
+        
+        if (attempts < maxAttempts) {
+          // Keep retrying every 3 seconds
+          setTimeout(wakeUpBackend, 3000);
+        } else {
+          console.log('⚠️ Backend wake-up timeout. User may need to manually refresh.');
+          setBackendWaking(false); // Allow login attempt anyway
+        }
       }
     };
     
@@ -49,6 +69,13 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
+      {/* Hidden iframe to wake up backend - bypasses CORS issues */}
+      <iframe
+        src={import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/actuator/health` : 'http://localhost:8080/actuator/health'}
+        style={{ display: 'none' }}
+        title="Backend Wake-up"
+      />
+      
       {/* System Health Header - shows backend status while waking up */}
       <div className={`transition-opacity duration-500 ${backendWaking ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
         <SystemMetrics />
