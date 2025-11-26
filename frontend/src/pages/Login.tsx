@@ -58,12 +58,22 @@ const Login = () => {
         <div className="max-w-md w-full space-y-8">
           {/* Backend Status Banner */}
           {backendWaking && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
-              <div className="flex items-center justify-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
-                <p className="text-sm text-yellow-800">
-                  Waking up backend (free tier)... This may take ~30 seconds
-                </p>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex flex-col items-center space-y-2">
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
+                  <p className="text-sm text-yellow-800">
+                    Waking up backend (free tier)... This may take a while...
+                  </p>
+                </div>
+                <a 
+                  href="https://employee-platform-assignment.onrender.com/actuator/health"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-yellow-700 hover:text-yellow-900 underline"
+                >
+                  Check backend status directly →
+                </a>
               </div>
             </div>
           )}
@@ -138,6 +148,28 @@ const Login = () => {
               <p>Manager: username: <code className="bg-blue-100 px-1 rounded">manager</code>, password: <code className="bg-blue-100 px-1 rounded">password123</code></p>
               <p>Employee: username: <code className="bg-blue-100 px-1 rounded">employee</code>, password: <code className="bg-blue-100 px-1 rounded">password123</code></p>
               <p>Coworker: username: <code className="bg-blue-100 px-1 rounded">coworker</code>, password: <code className="bg-blue-100 px-1 rounded">password123</code></p>
+            </div>
+            <div className="mt-3 pt-3 border-t border-blue-200">
+              <p className="text-xs text-blue-600">
+                <span className="font-medium">Backend API:</span>{' '}
+                <a 
+                  href="https://employee-platform-assignment.onrender.com/actuator/health"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-blue-800"
+                >
+                  Health Endpoint
+                </a>
+                {' • '}
+                <a 
+                  href="https://employee-platform-assignment.onrender.com/actuator/metrics"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-blue-800"
+                >
+                  Metrics
+                </a>
+              </p>
             </div>
           </div>
         </form>
