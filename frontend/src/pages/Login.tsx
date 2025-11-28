@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { authApi, metricsApi } from "../api";
+import { authApi } from "../api";
 import { useAuth } from "../AuthContext";
 import { SystemMetrics } from "../components/SystemMetrics";
 
@@ -9,44 +9,8 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [backendWaking, setBackendWaking] = useState(true);
   const navigate = useNavigate();
   const { login } = useAuth();
-
-  // Wake up the backend as soon as the login page loads
-  useEffect(() => {
-    let attempts = 0;
-    const maxAttempts = 60; 
-
-    const wakeUpBackend = async () => {
-      attempts++;
-      try {
-        console.log(`🌅 Attempt ${attempts}: Waking up backend (free tier)...`);
-
-        
-        await metricsApi.getHealth();
-
-        console.log("✅ Backend is ready!");
-        setBackendWaking(false);
-      } catch (err) {
-        console.log(
-          `⏳ Attempt ${attempts}/${maxAttempts}: Backend still waking up...`
-        );
-
-        if (attempts < maxAttempts) {
-          // Keep retrying every 3 seconds
-          setTimeout(wakeUpBackend, 3000);
-        } else {
-          console.log(
-            "⚠️ Backend wake-up timeout. User may need to manually refresh."
-          );
-          setBackendWaking(false); // Allow login attempt anyway
-        }
-      }
-    };
-
-    wakeUpBackend();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,28 +48,6 @@ const Login = () => {
 
       <div className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
-          {/* Backend Status Banner */}
-          {backendWaking && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <div className="flex flex-col items-center space-y-2">
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
-                  <p className="text-sm text-yellow-800">
-                    Waking up backend (free tier)... This may take a while...
-                  </p>
-                </div>
-                <a
-                  href="https://employee-platform-assignment.onrender.com/actuator/health"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-yellow-700 hover:text-yellow-900 underline"
-                >
-                  Check backend status directly →
-                </a>
-              </div>
-            </div>
-          )}
-
           <div>
             <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
               HR Platform
@@ -160,14 +102,10 @@ const Login = () => {
             <div>
               <button
                 type="submit"
-                disabled={loading || backendWaking}
+                disabled={loading}
                 className="w-full btn btn-primary disabled:opacity-75"
               >
-                {backendWaking
-                  ? "Waiting for backend..."
-                  : loading
-                  ? "Signing in..."
-                  : "Sign in"}
+                {loading ? "Signing in..." : "Sign in"}
               </button>
             </div>
 
