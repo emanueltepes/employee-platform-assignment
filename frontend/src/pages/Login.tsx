@@ -16,27 +16,15 @@ const Login = () => {
   // Wake up the backend as soon as the login page loads
   useEffect(() => {
     let attempts = 0;
-    const maxAttempts = 2000;
+    const maxAttempts = 60; 
 
     const wakeUpBackend = async () => {
       attempts++;
       try {
         console.log(`🌅 Attempt ${attempts}: Waking up backend (free tier)...`);
 
-        // Try multiple endpoints to maximize wake-up chances
-        await Promise.race([
-          metricsApi.getHealth(),
-          // Also try a simple fetch without CORS preflight
-          fetch(
-            import.meta.env.VITE_API_URL
-              ? `${import.meta.env.VITE_API_URL}/actuator/health`
-              : "http://localhost:8080/actuator/health",
-            {
-              mode: "no-cors", // Bypass CORS - we don't care about the response
-              cache: "no-cache",
-            }
-          ),
-        ]);
+        
+        await metricsApi.getHealth();
 
         console.log("✅ Backend is ready!");
         setBackendWaking(false);
