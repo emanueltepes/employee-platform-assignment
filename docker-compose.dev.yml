@@ -44,8 +44,7 @@ services:
       REDIS_PORT: 6379
       
       # Logging
-          LOGGING_LEVEL_COM_NEWWORK_BACKEND: DEBUG
-          # Note: Logging level kept for internal package structure
+      LOGGING_LEVEL_COM_NEWWORK_BACKEND: DEBUG
     depends_on:
       redis:
         condition: service_healthy
